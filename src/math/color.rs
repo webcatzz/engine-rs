@@ -197,6 +197,18 @@ impl<C: ColorComponent> From<[C; 4]> for Color<C> {
 	}
 }
 
+impl From<SDL_Color> for Color<u8> {
+	fn from(sdl: SDL_Color) -> Self {
+		Self { r: sdl.r, g: sdl.g, b: sdl.b, a: sdl.a }
+	}
+}
+
+impl From<SDL_FColor> for Color<f32> {
+	fn from(sdl: SDL_FColor) -> Self {
+		Self { r: sdl.r as f32, g: sdl.g as f32, b: sdl.b as f32, a: sdl.a as f32 }
+	}
+}
+
 impl<C: ColorComponent> Into<(C, C, C)> for Color<C> {
 	fn into(self) -> (C, C, C) {
 		self.rgb()
