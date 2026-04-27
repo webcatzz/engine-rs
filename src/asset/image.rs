@@ -7,15 +7,25 @@ use crate::math::Vec2;
 use crate::sdl::err::non_null_or_sdl_panic;
 use super::FromBytes;
 
+/// An image.
 pub struct Image(NonNull<SDL_Surface>);
 
 impl Image {
 
+	/// Returns the width of the image, in pixels.
+	pub fn width(&self) -> u32 {
+		unsafe { ptr::read(self.sdl_surface()).w as u32 }
+	}
+
+	/// Returns the height of the image, in pixels.
+	pub fn height(&self) -> u32 {
+		unsafe { ptr::read(self.sdl_surface()).h as u32 }
+	}
+
+	/// Returns the size of the image, in pixels.
 	pub fn size(&self) -> Vec2<u32> {
-		unsafe {
-			let v = ptr::read(self.sdl_surface());
-			Vec2 { x: v.w as u32, y: v.h as u32 }
-		}
+		let surface = unsafe { ptr::read(self.sdl_surface()) };
+		Vec2 { x: surface.w as u32, y: surface.h as u32 }
 	}
 
 	/// Wraps an `SDL_Surface` pointer in a [`Image`].
