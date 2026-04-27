@@ -6,7 +6,7 @@ use std::path::Path;
 
 /// Types that can be loaded from the filesystem.
 pub trait Load: Sized {
-	// Additional parameters for loading.
+	/// Additional parameters for loading.
 	type Params<'a>;
 	/// Loads from the filesystem.
 	fn load(path: impl AsRef<Path>, params: Self::Params<'_>) -> io::Result<Self>;
@@ -16,7 +16,7 @@ pub trait Load: Sized {
 ///
 /// Generates a blanket implementation for [`Load`].
 pub trait FromBytes: Sized {
-	// Additional parameters for parsing.
+	/// Additional parameters for parsing.
 	type Params<'a>;
 	/// Parses from bytes.
 	fn from_bytes(bytes: &mut (impl Read + Seek), params: Self::Params<'_>) -> io::Result<Self>;
