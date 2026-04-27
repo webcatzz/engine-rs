@@ -3,7 +3,7 @@ use std::io::{self, Read, Seek};
 use std::ptr::NonNull;
 use sdl3_sys::render::*;
 use sdl3_image_sys::image::*;
-use crate::math::{Vec2, Rect, Transform, Cast};
+use crate::math::{Cast, Rect, Transform, Vec2};
 use crate::sdl::err::{non_null_or_sdl_panic, sdl_assert};
 use crate::sdl::io::SdlIoStream;
 use crate::window::Frame;
@@ -41,23 +41,25 @@ impl Texture {
 		self.draw_offset(Vec2::<f32>::ZERO, transform, frame);
 	}
 
-	/// Draws part of the texture to a frame.
-	pub fn draw_rect<T: Cast + Copy>(&self, rect: Rect<T>, transform: Transform, frame: &mut Frame) {
-		self.draw_rect_offset(rect, Vec2::<f32>::ZERO, transform, frame);
-	}
-
 	/// Draws the texture to a frame with some offset.
-	pub fn draw_offset<T: Cast + Copy>(&self, offset: Vec2<T>, transform: Transform, frame: &mut Frame) {
+	pub fn draw_offset<T: Cast>(&self, offset: Vec2<T>, transform: Transform, frame: &mut Frame) {
 		self.draw_rect_offset(self.full_rect(), offset, transform, frame);
 	}
 
-	/// Shorthand for `texture.draw_offset(texture.size() / 2, &mut frame)`.
+	/// Shorthand for `texture.draw_offset(texture.size() / 2, transform, frame)`.
 	pub fn draw_centered(&self, transform: Transform, frame: &mut Frame) {
 		self.draw_offset(self.size() / 2, transform, frame);
 	}
 
+	/// Draws part of the texture to a frame.
+	pub fn draw_rect<T: Cast, U: Cast + Copy>(&self, rect: Rect<T, U>, transform: Transform, frame: &mut Frame) {
+		self.draw_rect_offset(rect, Vec2::<f32>::ZERO, transform, frame);
+	}
+
 	/// Draws part of a texture to a frame with some offset.
-	pub fn draw_rect_offset<T: Cast + Copy, U: Cast + Copy>(&self, rect: Rect<T>, offset: Vec2<U>, transform: Transform, frame: &mut Frame) {
+	pub fn draw_rect_offset<T, U, V>(&self, rect: Rect<T, U>, offset: Vec2<V>, transform: Transform, frame: &mut Frame)
+	where T: Cast, U: Cast + Copy, V: Cast
+	{
 		unsafe {
 			let offset = offset.as_f32();
 			let rem    = rect.size.as_f32() - offset;
