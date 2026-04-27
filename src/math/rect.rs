@@ -2,7 +2,7 @@
 
 use std::ops::{Add, Sub, Mul, AddAssign, SubAssign};
 use sdl3_sys::rect::SDL_FRect;
-use super::{Vec2, Axis, Dir, Cast, One, Zero};
+use super::{Axis, Cast, Dir, One, Transform, Vec2, Zero};
 
 /// A rectangle.
 #[derive(Default, Clone, Copy, PartialEq, Eq, Hash)]
@@ -125,6 +125,17 @@ impl<T: Copy + AddAssign + SubAssign + Add<Output = T>> Rect<T> {
 			Dir::Up    => self.pos.y  -= by,
 			Dir::Down  => self.size.y += by,
 		}
+		self
+	}
+
+}
+
+impl Rect<f32> {
+
+	/// Transforms the rectangle.
+	pub fn transform(mut self, transform: Transform) -> Self {
+		self.pos = transform.transform(self.pos.as_f32());
+		self.size = transform.multiply(self.size.as_f32());
 		self
 	}
 
