@@ -13,7 +13,7 @@
 //! To avoid unnecessary lifetime management and resource duplication, most
 //! types that need access to an asset ask for a [`Cached`] handle.
 
-// mod ase;
+pub mod ase;
 mod audio;
 mod batch;
 mod cache;
@@ -22,7 +22,7 @@ mod image;
 mod load;
 mod texture;
 
-// pub use ase::*;
+pub use ase::Aseprite;
 pub use audio::*;
 pub use batch::*;
 pub use cache::*;
