@@ -188,7 +188,7 @@ impl FromBytes for Aseprite {
 			let frame_chunk_count_new = frame_header.read_dword()?;
 			let frame_chunk_count = if frame_chunk_count_new == 0 { frame_chunk_count_old as u32 } else { frame_chunk_count_new };
 			// Sets up vectors
-			let mut cels = Vec::new();
+			let mut frame_cels = Vec::new();
 			// Reads chunks
 			for _ in 0..frame_chunk_count {
 				// Reads chunk header
@@ -345,8 +345,8 @@ impl FromBytes for Aseprite {
 							// Unknown cels
 							_ => return Err(io::Error::new(io::ErrorKind::InvalidData, format!("Unknown Aseprite cel type: {cel_type}"))),
 						};
-						// Adds cel to `cels`
-						cels.push(Cel {
+						// Adds cel to `frame_cels`
+						frame_cels.push(Cel {
 							frame_index,
 							layer_index: cel_layer_index,
 							pos: Vec2 { x: cel_pos_x, y: cel_pos_y },
@@ -491,7 +491,10 @@ impl FromBytes for Aseprite {
 				}
 			}
 			// Adds frame to `frames`
-			frames.push(Frame { cels });
+			frames.push(Frame {
+				duration: Duration::from_millis(frame_duration_ms as u64),
+				cels: frame_cels,
+			});
 		}
 		// Returns file data
 		Ok(Aseprite {

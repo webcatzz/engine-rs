@@ -37,6 +37,7 @@ pub enum ColorMode {
 }
 
 pub struct Frame {
+	pub duration: Duration,
 	pub cels: Vec<Cel>,
 }
 
