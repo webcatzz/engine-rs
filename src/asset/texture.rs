@@ -1,6 +1,6 @@
 use std::ffi::c_float;
 use std::io::{self, Read, Seek};
-use std::ptr::NonNull;
+use std::ptr::{self, NonNull};
 use sdl3_sys::render::*;
 use sdl3_image_sys::image::*;
 use crate::math::{Rect, Transform, Vec2};
@@ -88,6 +88,24 @@ impl Texture {
 	/// Returns the `SDL_Texture` pointer underlying a [`Texture`].
 	pub(crate) const fn sdl_texture(&self) -> *mut SDL_Texture {
 		self.0.as_ptr()
+	}
+
+}
+
+impl Clone for Texture {
+
+	fn clone(&self) -> Self {
+		unsafe {
+			let renderer = SDL_GetRendererFromTexture(self.sdl_texture());
+			sdl_assert!(!renderer.is_null());
+			let SDL_Texture { format, w, h, .. } = *self.sdl_texture();
+			let texture_ptr = SDL_CreateTexture(renderer, format, SDL_TEXTUREACCESS_TARGET, w, h);
+			let texture = Texture::from_sdl_texture(non_null_or_sdl_panic(texture_ptr));
+			sdl_assert!(SDL_SetRenderTarget(renderer, texture.sdl_texture())
+				&& SDL_RenderTexture(renderer, self.sdl_texture(), ptr::null(), ptr::null())
+				&& SDL_SetRenderTarget(renderer, ptr::null_mut()));
+			texture
+		}
 	}
 
 }
