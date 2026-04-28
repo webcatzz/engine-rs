@@ -98,7 +98,7 @@ impl<T: Copy + Ord + Add<Output = T> + Sub<Output = T>> Rect<T> {
 
 impl<T: Copy + AddAssign + SubAssign + Add<Output = T>> Rect<T> {
 
-	/// Expands a rect on all sides.
+	/// Expands a rectangle by the given amount.
 	pub fn grow(mut self, by: T) -> Self {
 		let vec = Vec2 { x: by, y: by };
 		self.pos  -= vec;
@@ -106,7 +106,7 @@ impl<T: Copy + AddAssign + SubAssign + Add<Output = T>> Rect<T> {
 		self
 	}
 
-	/// Expands a rect on all sides.
+	/// Expands a rectangle by discrete amounts for each side.
 	pub fn grow_sides(mut self, top: T, right: T, bottom: T, left: T) -> Self {
 		self.pos.x  -= left;
 		self.pos.y  -= top;
@@ -115,7 +115,7 @@ impl<T: Copy + AddAssign + SubAssign + Add<Output = T>> Rect<T> {
 		self
 	}
 
-	/// expands one side of a rect
+	/// Expands one side of a rectangle.
 	pub fn grow_side(mut self, dir: Dir, by: T) -> Self {
 		match dir {
 			Dir::Left  => self.pos.x  -= by,
@@ -141,9 +141,9 @@ impl Rect<f32> {
 
 // Conversions
 
-impl<T: Copy + Cast, U: Copy + Cast> Rect<T, U> {
+impl<T: Cast, U: Cast> Rect<T, U> {
 
-	pub fn cast<V: Copy + Cast, W: Copy + Cast>(self) -> Rect<V, W> {
+	pub fn cast<V: Cast, W: Cast>(self) -> Rect<V, W> {
 		Rect {
 			pos: self.pos.cast(),
 			size: self.size.cast(),
