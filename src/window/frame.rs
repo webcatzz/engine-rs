@@ -114,9 +114,3 @@ impl<'a> Frame<'a> {
 	}
 
 }
-
-/// Types that can be drawn to a [`Frame`].
-pub trait Draw {
-	/// Draws to a [`Frame`].
-	fn draw(&self, frame: &mut Frame);
-}
