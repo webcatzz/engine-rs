@@ -3,7 +3,7 @@ use std::io::{self, Read, Seek};
 use std::ptr::NonNull;
 use sdl3_sys::render::*;
 use sdl3_image_sys::image::*;
-use crate::math::{Cast, Rect, Transform, Vec2};
+use crate::math::{Rect, Transform, Vec2};
 use crate::sdl::err::{non_null_or_sdl_panic, sdl_assert};
 use crate::sdl::io::SdlIoStream;
 use crate::window::Frame;
@@ -32,6 +32,7 @@ impl Texture {
 		}
 	}
 
+	/// Returns the rectangle occupied by the texture, starting at the origin.
 	const fn full_rect(&self) -> Rect<u32> {
 		Rect { pos: Vec2::ZERO, size: self.size() }
 	}
@@ -42,24 +43,22 @@ impl Texture {
 	}
 
 	/// Draws the texture to a frame with some offset.
-	pub fn draw_offset<T: Cast>(&self, offset: Vec2<T>, transform: Transform, frame: &mut Frame) {
-		self.draw_rect_offset(self.full_rect(), offset, transform, frame);
+	pub fn draw_offset(&self, offset: Vec2<f32>, transform: Transform, frame: &mut Frame) {
+		self.draw_rect_offset(self.full_rect().cast(), offset, transform, frame);
 	}
 
 	/// Shorthand for `texture.draw_offset(texture.size() / 2, transform, frame)`.
 	pub fn draw_centered(&self, transform: Transform, frame: &mut Frame) {
-		self.draw_offset(self.size() / 2, transform, frame);
+		self.draw_offset(self.size().as_f32() / 2.0, transform, frame);
 	}
 
 	/// Draws part of the texture to a frame.
-	pub fn draw_rect<T: Cast, U: Cast + Copy>(&self, rect: Rect<T, U>, transform: Transform, frame: &mut Frame) {
-		self.draw_rect_offset(rect, Vec2::<f32>::ZERO, transform, frame);
+	pub fn draw_rect(&self, rect: Rect<f32>, transform: Transform, frame: &mut Frame) {
+		self.draw_rect_offset(rect, Vec2::ZERO, transform, frame);
 	}
 
 	/// Draws part of a texture to a frame with some offset.
-	pub fn draw_rect_offset<T, U, V>(&self, rect: Rect<T, U>, offset: Vec2<V>, transform: Transform, frame: &mut Frame)
-	where T: Cast, U: Cast + Copy, V: Cast
-	{
+	pub fn draw_rect_offset(&self, rect: Rect<f32>, offset: Vec2<f32>, transform: Transform, frame: &mut Frame) {
 		unsafe {
 			let offset = offset.as_f32();
 			let rem    = rect.size.as_f32() - offset;
@@ -76,6 +75,7 @@ impl Texture {
 		}
 	}
 
+	/// Creates a texture from an image.
 	pub fn from_image(image: &Image, frame: &Frame) -> Self {
 		unsafe { Self::from_sdl_texture(non_null_or_sdl_panic(SDL_CreateTextureFromSurface(frame.sdl_renderer(), image.sdl_surface()))) }
 	}

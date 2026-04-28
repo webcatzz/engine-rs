@@ -37,30 +37,30 @@ impl<'a> Frame<'a> {
 	}
 
 	/// Fills a pixel.
-	pub fn draw_point<T: Cast>(&mut self, pos: Vec2<T>, color: Color<u8>) {
+	pub fn draw_point(&mut self, pos: Vec2<f32>, color: Color<u8>) {
 		unsafe { sdl_assert!(
 			SDL_SetRenderDrawColor(self.sdl_renderer(), color.r, color.g, color.b, color.a)
-			&& SDL_RenderPoint(self.sdl_renderer(), c_float::cast_from(pos.x), c_float::cast_from(pos.y))
+			&& SDL_RenderPoint(self.sdl_renderer(), pos.x as c_float, pos.y as c_float)
 		); }
 	}
 
 	/// Draws a line from one point to another.
-	pub fn draw_line<T: Cast>(&mut self, a: Vec2<T>, b: Vec2<T>, color: Color<u8>) {
+	pub fn draw_line(&mut self, a: Vec2<f32>, b: Vec2<f32>, color: Color<u8>) {
 		unsafe { sdl_assert!(
 			SDL_SetRenderDrawColor(self.sdl_renderer(), color.r, color.g, color.b, color.a)
-			&& SDL_RenderLine(self.sdl_renderer(), c_float::cast_from(a.x), c_float::cast_from(a.y), c_float::cast_from(b.x), c_float::cast_from(b.y))
+			&& SDL_RenderLine(self.sdl_renderer(), a.x as c_float, a.y as c_float, b.x as c_float, b.y as c_float)
 		); }
 	}
 
 	/// Outlines a circle.
-	pub fn draw_circle<T: Cast>(&mut self, center: Vec2<T>, radius: f32, color: Color<u8>) {
+	pub fn draw_circle(&mut self, center: Vec2<f32>, radius: f32, color: Color<u8>) {
 		math::bresenham_circle(center.as_i32(), radius as u32, |pos| {
-			self.draw_point(pos, color);
+			self.draw_point(pos.as_f32(), color);
 		});
 	}
 
 	/// Outlines a rectangle.
-	pub fn draw_rect<T: Cast, U: Cast>(&mut self, rect: Rect<T, U>, color: Color<u8>) {
+	pub fn draw_rect(&mut self, rect: Rect<f32>, color: Color<u8>) {
 		unsafe { sdl_assert!(
 			SDL_SetRenderDrawColor(self.sdl_renderer(), color.r, color.g, color.b, color.a)
 			&& SDL_RenderRect(self.sdl_renderer(), &rect.into())
@@ -68,7 +68,7 @@ impl<'a> Frame<'a> {
 	}
 
 	/// Fills a rectangle.
-	pub fn fill_rect<T: Cast, U: Cast>(&mut self, rect: Rect<T, U>, color: Color<u8>) {
+	pub fn fill_rect(&mut self, rect: Rect<f32>, color: Color<u8>) {
 		unsafe { sdl_assert!(
 			SDL_SetRenderDrawColor(self.sdl_renderer(), color.r, color.g, color.b, color.a)
 			&& SDL_RenderFillRect(self.sdl_renderer(), &rect.into())

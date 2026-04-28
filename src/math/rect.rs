@@ -13,7 +13,7 @@ pub struct Rect<T, U = T> {
 	pub size: Vec2<U>,
 }
 
-impl<T: Copy, U: Copy> Rect<T, U> {
+impl<T, U> Rect<T, U> {
 
 	/// Returns a rectangle with some position.
 	pub fn with_pos(mut self, pos: Vec2<T>) -> Self {
@@ -28,8 +28,6 @@ impl<T: Copy, U: Copy> Rect<T, U> {
 	}
 
 }
-
-// constants
 
 impl<T: Zero> Rect<T> {
 
@@ -134,14 +132,14 @@ impl Rect<f32> {
 
 	/// Transforms the rectangle.
 	pub fn transform(mut self, transform: Transform) -> Self {
-		self.pos = transform.transform(self.pos.as_f32());
-		self.size = transform.multiply(self.size.as_f32());
+		self.pos = transform.transform(self.pos);
+		self.size = transform.multiply(self.size);
 		self
 	}
 
 }
 
-// conversions
+// Conversions
 
 impl<T: Copy + Cast, U: Copy + Cast> Rect<T, U> {
 

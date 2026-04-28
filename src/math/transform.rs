@@ -1,4 +1,4 @@
-use super::{Vec2, Cast};
+use super::Vec2;
 
 /// A transformation matrix.
 #[derive(Clone, Copy, PartialEq)]
@@ -40,8 +40,8 @@ impl Transform {
 	}
 
 	/// Returns a transform with added translation.
-	pub fn translated<T: Cast>(mut self, by: Vec2<T>) -> Self {
-		self.translation += by.as_f32();
+	pub fn translated(mut self, by: Vec2<f32>) -> Self {
+		self.translation += by;
 		self
 	}
 
