@@ -8,7 +8,7 @@ use sdl3_sys::render::*;
 use sdl3_sys::surface::*;
 use sdl3_ttf_sys::textengine::*;
 use sdl3_ttf_sys::ttf::*;
-use crate::asset::{Texture, Font};
+use crate::asset::{Font, Texture, TextureDrawOptions};
 use crate::math::{self, Color, Rect, Vec2, Transform, Cast};
 use crate::sdl::err::{non_null_or_sdl_panic, sdl_assert};
 
@@ -83,7 +83,7 @@ impl<'a> Frame<'a> {
 			sdl_assert!(!surface.is_null());
 			let texture = Texture::from_sdl_texture(non_null_or_sdl_panic(SDL_CreateTextureFromSurface(self.sdl_renderer(), surface)));
 			SDL_DestroySurface(surface);
-			texture.draw(transform, self);
+			texture.draw(TextureDrawOptions { transform, ..Default::default() }, self);
 		}
 	}
 

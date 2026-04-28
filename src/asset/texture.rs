@@ -1,9 +1,8 @@
-use std::ffi::c_float;
 use std::io::{self, Read, Seek};
 use std::ptr::{self, NonNull};
 use sdl3_sys::render::*;
 use sdl3_image_sys::image::*;
-use crate::math::{Rect, Transform, Vec2};
+use crate::math::{Color, Rect, Transform, Vec2};
 use crate::sdl::err::{non_null_or_sdl_panic, sdl_assert};
 use crate::sdl::io::SdlIoStream;
 use crate::window::Frame;
@@ -26,52 +25,21 @@ impl Texture {
 
 	/// Returns the size of the texture, in pixels.
 	pub const fn size(&self) -> Vec2<u32> {
-		unsafe {
-			let val = self.sdl_texture().read();
-			Vec2 { x: val.w as u32, y: val.h as u32 }
-		}
-	}
-
-	/// Returns the rectangle occupied by the texture, starting at the origin.
-	const fn full_rect(&self) -> Rect<u32> {
-		Rect { pos: Vec2::ZERO, size: self.size() }
+		let SDL_Texture { w, h, .. } = unsafe { self.sdl_texture().read() };
+		Vec2 { x: w as u32, y: h as u32 }
 	}
 
 	/// Draws the texture to a frame.
-	pub fn draw(&self, transform: Transform, frame: &mut Frame) {
-		self.draw_offset(Vec2::<f32>::ZERO, transform, frame);
-	}
-
-	/// Draws the texture to a frame with some offset.
-	pub fn draw_offset(&self, offset: Vec2<f32>, transform: Transform, frame: &mut Frame) {
-		self.draw_rect_offset(self.full_rect().cast(), offset, transform, frame);
-	}
-
-	/// Shorthand for `texture.draw_offset(texture.size() / 2, transform, frame)`.
-	pub fn draw_centered(&self, transform: Transform, frame: &mut Frame) {
-		self.draw_offset(self.size().as_f32() / 2.0, transform, frame);
-	}
-
-	/// Draws part of the texture to a frame.
-	pub fn draw_rect(&self, rect: Rect<f32>, transform: Transform, frame: &mut Frame) {
-		self.draw_rect_offset(rect, Vec2::ZERO, transform, frame);
-	}
-
-	/// Draws part of a texture to a frame with some offset.
-	pub fn draw_rect_offset(&self, rect: Rect<f32>, offset: Vec2<f32>, transform: Transform, frame: &mut Frame) {
+	pub fn draw(&self, TextureDrawOptions { rect, offset, transform, modulate }: TextureDrawOptions, frame: &mut Frame) {
 		unsafe {
-			let offset = offset.as_f32();
-			let rem    = rect.size.as_f32() - offset;
+			let rect   = rect.unwrap_or_else(|| Rect { pos: Vec2::ZERO, size: self.size().as_f32() });
+			let rem    = rect.size - offset;
 			let origin = transform.transform(-offset);
 			let right  = transform.transform(Vec2 { x: rem.x, y: -offset.y });
 			let down   = transform.transform(Vec2 { x: -offset.x, y: rem.y });
-			sdl_assert!(SDL_RenderTextureAffine(frame.sdl_renderer(), self.sdl_texture(), &rect.into(), &origin.into(), &right.into(), &down.into()));
-		}
-	}
-
-	pub fn fill_rect(&self, rect: Rect<f32>, scale: f32, frame: &mut Frame) {
-		unsafe {
-			sdl_assert!(SDL_RenderTextureTiled(frame.sdl_renderer(), self.sdl_texture(), &self.full_rect().into(), scale as c_float, &rect.into()));
+			sdl_assert!(SDL_SetTextureColorMod(self.sdl_texture(), modulate.r, modulate.g, modulate.b)
+				&& SDL_SetTextureAlphaMod(self.sdl_texture(), modulate.a)
+				&& SDL_RenderTextureAffine(frame.sdl_renderer(), self.sdl_texture(), &rect.into(), &origin.into(), &right.into(), &down.into()));
 		}
 	}
 
@@ -137,3 +105,16 @@ impl Drop for Texture {
 
 unsafe impl Send for Texture {}
 unsafe impl Sync for Texture {}
+
+/// Options for drawing a texture.
+#[derive(Default, Clone)]
+pub struct TextureDrawOptions {
+	/// The portion of the texture to draw. Uses the full texture if `None`.
+	pub rect: Option<Rect<f32>>,
+	/// The offset applied when drawing the texture.
+	pub offset: Vec2<f32>,
+	/// The transform applied when drawing the texture.
+	pub transform: Transform,
+	/// The color modulation applied when drawing the texture.
+	pub modulate: Color<u8>,
+}
