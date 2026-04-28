@@ -12,6 +12,7 @@ use std::io::{self, Read, Seek};
 use std::ptr;
 use sdl3_sys::pixels::*;
 use sdl3_sys::render::*;
+use sdl3_sys::surface::*;
 use crate::asset::FromBytes;
 use crate::math::{Color, Rect, Vec2};
 use crate::sdl::err::{non_null_or_sdl_panic, sdl_assert};
@@ -273,13 +274,30 @@ impl FromBytes for Aseprite {
 							// Raw image data cels
 							CEL_TYPE_RAW_IMAGE_DATA => {
 								// Reads cell data
-								let cel_width = chunk_data.read_word()?;
-								let cel_height = chunk_data.read_word()?;
+								let cel_width = chunk_data.read_word()? as c_int;
+								let cel_height = chunk_data.read_word()? as c_int;
 								let mut cel_pixels = Vec::new();
 								chunk_data.read_to_end(&mut cel_pixels)?;
 								// Creates SDL texture
-								let cel_texture = Texture::from_sdl_texture(non_null_or_sdl_panic(unsafe { SDL_CreateTexture(params.sdl_renderer(), sdl_texture_format, SDL_TEXTUREACCESS_STATIC, cel_width as c_int, cel_height as c_int) }));
-								unsafe { sdl_assert!(SDL_UpdateTexture(cel_texture.sdl_texture(), ptr::null(), cel_pixels.as_ptr() as *const c_void, cel_width as c_int * 4)); }
+								let cel_texture = match color_mode {
+									ColorMode::Indexed => unsafe {
+										let cel_surface = SDL_CreateSurfaceFrom(cel_width, cel_height, sdl_texture_format, cel_pixels.as_mut_ptr() as *mut c_void, cel_width * color_depth as c_int / 8);
+										sdl_assert!(!cel_surface.is_null()
+											&& SDL_SetSurfaceColorKey(cel_surface, true, transparent_color_index as u32));
+										let cel_palette = SDL_CreateSurfacePalette(cel_surface);
+										sdl_assert!(!cel_palette.is_null());
+										let sdl_colors = Vec::from_iter(palette.iter().map(|entry| entry.color.into()));
+										sdl_assert!(SDL_SetPaletteColors(cel_palette, sdl_colors.as_ptr(), 0, sdl_colors.len() as c_int));
+										let cel_texture = SDL_CreateTextureFromSurface(params.sdl_renderer(), cel_surface);
+										SDL_DestroySurface(cel_surface);
+										Texture::from_sdl_texture(non_null_or_sdl_panic(cel_texture))
+									}
+									_ => unsafe {
+										let cel_texture = Texture::from_sdl_texture(non_null_or_sdl_panic(SDL_CreateTexture(params.sdl_renderer(), sdl_texture_format, SDL_TEXTUREACCESS_STATIC, cel_width as c_int, cel_height as c_int)));
+										sdl_assert!(SDL_UpdateTexture(cel_texture.sdl_texture(), ptr::null(), cel_pixels.as_ptr() as *const c_void, cel_width as c_int * color_depth as c_int / 8));
+										cel_texture
+									}
+								};
 								// Returns cel content
 								CelContent::Texture { texture: cel_texture }
 							},
@@ -293,15 +311,32 @@ impl FromBytes for Aseprite {
 							// Compressed image cels
 							CEL_TYPE_COMPRESSED_IMAGE => {
 								// Reads cell data
-								let cel_width = chunk_data.read_word()?;
-								let cel_height = chunk_data.read_word()?;
+								let cel_width = chunk_data.read_word()? as c_int;
+								let cel_height = chunk_data.read_word()? as c_int;
 								let mut cel_pixels_compressed = Vec::new();
 								chunk_data.read_to_end(&mut cel_pixels_compressed)?;
-								let cel_pixels = zlib::decompress(cel_pixels_compressed.as_slice()).unwrap();
+								let mut cel_pixels = zlib::decompress(cel_pixels_compressed.as_slice()).unwrap();
 								debug_assert_eq!(cel_pixels.len(), cel_width as usize * cel_height as usize * color_depth as usize / 8);
 								// Creates SDL texture
-								let cel_texture = Texture::from_sdl_texture(non_null_or_sdl_panic(unsafe { SDL_CreateTexture(params.sdl_renderer(), sdl_texture_format, SDL_TEXTUREACCESS_STATIC, cel_width as c_int, cel_height as c_int) }));
-								unsafe { sdl_assert!(SDL_UpdateTexture(cel_texture.sdl_texture(), ptr::null(), cel_pixels.as_ptr() as *const c_void, cel_width as c_int * 4)); }
+								let cel_texture = match color_mode {
+									ColorMode::Indexed => unsafe {
+										let cel_surface = SDL_CreateSurfaceFrom(cel_width, cel_height, sdl_texture_format, cel_pixels.as_mut_ptr() as *mut c_void, cel_width * color_depth as c_int / 8);
+										sdl_assert!(!cel_surface.is_null()
+											&& SDL_SetSurfaceColorKey(cel_surface, true, transparent_color_index as u32));
+										let cel_palette = SDL_CreateSurfacePalette(cel_surface);
+										sdl_assert!(!cel_palette.is_null());
+										let sdl_colors = Vec::from_iter(palette.iter().map(|entry| entry.color.into()));
+										sdl_assert!(SDL_SetPaletteColors(cel_palette, sdl_colors.as_ptr(), 0, sdl_colors.len() as c_int));
+										let cel_texture = SDL_CreateTextureFromSurface(params.sdl_renderer(), cel_surface);
+										SDL_DestroySurface(cel_surface);
+										Texture::from_sdl_texture(non_null_or_sdl_panic(cel_texture))
+									}
+									_ => unsafe {
+										let cel_texture = Texture::from_sdl_texture(non_null_or_sdl_panic(SDL_CreateTexture(params.sdl_renderer(), sdl_texture_format, SDL_TEXTUREACCESS_STATIC, cel_width as c_int, cel_height as c_int)));
+										sdl_assert!(SDL_UpdateTexture(cel_texture.sdl_texture(), ptr::null(), cel_pixels.as_ptr() as *const c_void, cel_width as c_int * color_depth as c_int / 8));
+										cel_texture
+									}
+								};
 								// Returns cel content
 								CelContent::Texture { texture: cel_texture }
 							},
@@ -457,22 +492,6 @@ impl FromBytes for Aseprite {
 			}
 			// Adds frame to `frames`
 			frames.push(Frame { cels });
-		}
-		// Sets palette for indexed sprites
-		if color_mode == ColorMode::Indexed {
-			// Creates SDL palette
-			let sdl_palette = unsafe { SDL_CreatePalette(palette.len() as c_int) };
-			assert!(!sdl_palette.is_null());
-			let sdl_colors = Vec::from_iter(palette.iter().map(|entry| entry.color.into()));
-			unsafe { sdl_assert!(SDL_SetPaletteColors(sdl_palette, sdl_colors.as_ptr(), 0, sdl_colors.len() as c_int)); }
-			// Updates cel palettes
-			for frame in frames.iter_mut() {
-				for cel in frame.cels.iter_mut() {
-					if let CelContent::Texture { texture } = &mut cel.content {
-						unsafe { sdl_assert!(SDL_SetTexturePalette(texture.sdl_texture(), sdl_palette)); }
-					}
-				}
-			}
 		}
 		// Returns file data
 		Ok(Aseprite {
