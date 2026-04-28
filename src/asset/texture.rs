@@ -107,7 +107,7 @@ unsafe impl Send for Texture {}
 unsafe impl Sync for Texture {}
 
 /// Options for drawing a texture.
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct TextureDrawOptions {
 	/// The portion of the texture to draw. Uses the full texture if `None`.
 	pub rect: Option<Rect<f32>>,
@@ -117,4 +117,17 @@ pub struct TextureDrawOptions {
 	pub transform: Transform,
 	/// The color modulation applied when drawing the texture.
 	pub modulate: Color<u8>,
+}
+
+impl Default for TextureDrawOptions {
+
+	fn default() -> Self {
+		Self {
+			rect: None,
+			offset: Vec2::ZERO,
+			transform: Transform::ID,
+			modulate: Color::WHITE,
+		}
+	}
+
 }
